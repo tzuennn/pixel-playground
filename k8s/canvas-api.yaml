@@ -1,0 +1,66 @@
+# Canvas State API Deployment and Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: canvas-api
+  labels:
+    app: canvas-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+    name: http
+  selector:
+    app: canvas-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canvas-api
+  labels:
+    app: canvas-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: canvas-api
+  template:
+    metadata:
+      labels:
+        app: canvas-api
+    spec:
+      containers:
+      - name: canvas-api
+        image: canvas-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+          name: http
+        env:
+        - name: PORT
+          value: "3001"
+        - name: REDIS_HOST
+          value: "redis-0.redis"
+        - name: REDIS_PORT
+          value: "6379"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5

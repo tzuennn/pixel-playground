@@ -1,0 +1,64 @@
+# WebSocket Gateway Deployment and Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket-gateway
+  labels:
+    app: websocket-gateway
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+    name: websocket
+  selector:
+    app: websocket-gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket-gateway
+  labels:
+    app: websocket-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: websocket-gateway
+  template:
+    metadata:
+      labels:
+        app: websocket-gateway
+    spec:
+      containers:
+      - name: websocket-gateway
+        image: websocket-gateway:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3002
+          name: websocket
+        env:
+        - name: PORT
+          value: "3002"
+        - name: CANVAS_API_URL
+          value: "http://canvas-api:3001"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5
