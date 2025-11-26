@@ -26,8 +26,9 @@ Frontend (3000) → WebSocket Gateway (3002) → Canvas API (3001) → Redis (63
 
 All services use `process.env.PORT || [default]`. Frontend injects URLs at runtime via `/config.js` for K8s service discovery:
 
-- K8s: `WS_URL=ws://websocket-gateway:3002`, `API_URL=http://canvas-api:3001`
-- Local: `WS_URL=ws://localhost:3002`, `API_URL=http://localhost:3001`
+- **K8s**: `WS_URL=ws://localhost:8080/ws`, `API_URL=http://localhost:8080/api` (via Ingress)
+- **Local**: `WS_URL=ws://localhost:3002`, `API_URL=http://localhost:3001`
+- **Internal K8s**: Canvas API uses `REDIS_HOST=redis-0.redis`, Gateway uses `CANVAS_API_URL=http://canvas-api:3001`
 
 ## Development Workflows
 
@@ -41,12 +42,25 @@ All services use `process.env.PORT || [default]`. Frontend injects URLs at runti
 ./scripts/cleanup.sh          # Delete K8s resources
 ```
 
+**Access URLs:**
+
+- Local dev: `http://localhost:3000`
+- K8s NodePort: `http://localhost:30000`
+- K8s Port-forward: `kubectl port-forward svc/frontend 8080:3000` → `http://localhost:8080`
+
 ### Testing Multi-User
 
 ```bash
 node test-multiuser.js        # Simulates 5 users drawing 3 pixels each (configurable)
+# Configure with: NUM_USERS=10 PIXELS_PER_USER=5 WS_URL=ws://localhost:3002 node test-multiuser.js
 # OR open http://localhost:3000 in multiple browsers
 ```
+
+Test script validates:
+
+- All users connect successfully
+- Broadcasts reach all clients (expects 90%+ success rate)
+- Real-time synchronization works correctly
 
 ### Debugging Failed Pods
 
@@ -54,6 +68,7 @@ node test-multiuser.js        # Simulates 5 users drawing 3 pixels each (configu
 kubectl logs -f deployment/[service-name]     # Stream logs
 kubectl describe pod [pod-name]               # Check events for ImagePullBackOff/CrashLoopBackOff
 kubectl exec -it redis-0 -- redis-cli HLEN canvas:pixels  # Verify 2500 pixels exist
+kubectl exec -it redis-0 -- redis-cli HGET canvas:pixels "25,25"  # Check specific pixel
 ```
 
 ## Code Conventions
@@ -148,45 +163,17 @@ npm run format:check     # CI check only
 npm run format:[service] # Format specific service (canvas-api, websocket, frontend)
 ```
 
-## Cloud Deployment Options
+## Scaling Considerations
 
-### Kubernetes (Current - Production Ready)
-- Full microservices with StatefulSet Redis
-- WebSocket support is native and reliable
-- Use `./scripts/build.sh` + `./scripts/deploy.sh`
-- Access at `http://localhost:30000` (NodePort)
+All services support horizontal scaling EXCEPT Redis (single StatefulSet):
 
-### Vercel (Goal - Public Access with Limitations)
-**⚠️ Critical WebSocket Challenge**: Vercel has experimental/limited WebSocket support. Real-time collaboration may not work reliably.
-
-**Recommended Hybrid Approach**:
-1. **Frontend**: Deploy to Vercel (static serving)
-2. **Backend Services**: Deploy to Railway/Render/Fly.io (better WebSocket support)
-3. **Redis**: Use Upstash Redis (serverless Redis with global replication)
-
-**Configuration Steps**:
 ```bash
-# 1. Set up Upstash Redis
-# Sign up at https://upstash.com, create database, get connection details
-
-# 2. Deploy backend to Railway (supports WebSockets + Redis)
-railway login
-railway init  # Link canvas-api and websocket-gateway
-railway up
-
-# 3. Deploy frontend to Vercel with backend URLs
-vercel --prod
-# Set env vars: WS_URL=wss://your-railway-app.railway.app, API_URL=https://your-api.railway.app
+kubectl scale deployment canvas-api --replicas=5
+kubectl scale deployment websocket-gateway --replicas=3
+kubectl scale deployment frontend --replicas=3
 ```
 
-**Alternative: Polling Instead of WebSockets**
-- Replace WebSocket with HTTP long-polling or server-sent events (SSE)
-- Less efficient but works on all serverless platforms
-- Modify frontend to use `EventSource` or `setInterval(fetch, 1000)`
-
-**Files to Review for Deployment**:
-- `vercel.json`: Vercel routing configuration (if using pure Vercel)
-- `vercel/README.md`: Detailed deployment instructions and tradeoffs
+**WebSocket Gateway scaling**: Each pod maintains independent client connections. Clients connect to ONE gateway instance via K8s Service load balancing. All gateways call the same Canvas API, ensuring consistency.
 
 ## Key Files Reference
 
@@ -195,5 +182,4 @@ vercel --prod
 - `websocket-gateway/server.js`: `handlePixelUpdate()` function shows fetch → broadcast pattern
 - `k8s/*.yaml`: Note `REDIS_HOST=redis-0.redis` env var format for StatefulSet DNS
 - `scripts/dev-local.sh`: Shows correct startup order: Redis → Canvas API → WebSocket → Frontend
-- `vercel.json`: Vercel deployment configuration (experimental WebSocket routing)
-- `vercel/README.md`: Cloud deployment guide with architecture tradeoffs
+- `test-multiuser.js`: Multi-user testing with configurable users/pixels, validates broadcast success rate
