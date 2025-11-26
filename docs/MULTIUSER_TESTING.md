@@ -3,11 +3,13 @@
 ## 🎯 Quick Answer: How to Test Multi-User Collaboration
 
 ### Method 1: Multiple Browser Windows (Easiest)
+
 1. Start the application
 2. Open http://localhost:3000 in multiple browser windows
 3. Draw in one window and watch updates appear in real-time in all others!
 
 ### Method 2: Multiple Browsers
+
 1. Start the application
 2. Open in Chrome: http://localhost:3000
 3. Open in Firefox: http://localhost:3000
@@ -15,6 +17,7 @@
 5. Draw in any browser and see updates in all!
 
 ### Method 3: Incognito/Private Windows
+
 1. Start the application
 2. Open multiple incognito/private windows
 3. Visit http://localhost:3000 in each
@@ -32,6 +35,7 @@ cd /Users/tzuentseng/CSMods/cloud/pixel-playground
 ```
 
 Wait about 10 seconds for all services to start. You should see:
+
 ```
 ✓ Redis started on port 6379
 ✓ Canvas API started on port 3001
@@ -42,6 +46,7 @@ Wait about 10 seconds for all services to start. You should see:
 ### Step 2: Open Multiple Browser Windows
 
 #### Option A: Same Browser, Multiple Windows
+
 ```bash
 # macOS - Open 3 windows
 open http://localhost:3000
@@ -52,6 +57,7 @@ open http://localhost:3000
 ```
 
 #### Option B: Different Browsers
+
 ```bash
 # Chrome
 open -a "Google Chrome" http://localhost:3000
@@ -72,7 +78,6 @@ open -a "Safari" http://localhost:3000
 2. **Test Drawing**:
    - Window 1: Click on a pixel - it should turn red
    - Windows 2 & 3: The same pixel should turn red immediately!
-   
 3. **Test Different Colors**:
    - Window 1: Select blue, draw something
    - Window 2: Select green, draw something
@@ -82,7 +87,6 @@ open -a "Safari" http://localhost:3000
 4. **Test Drawing Speed**:
    - Click and drag rapidly in one window
    - Other windows should update smoothly
-   
 5. **Test User Count**:
    - Close one browser window
    - After a few seconds, user count should decrease
@@ -108,11 +112,11 @@ const NUM_CLIENTS = 5;
 
 for (let i = 0; i < NUM_CLIENTS; i++) {
   const ws = new WebSocket('ws://localhost:3002');
-  
+
   ws.on('open', () => {
     console.log(`✓ Client ${i + 1} connected`);
   });
-  
+
   ws.on('message', (data) => {
     const message = JSON.parse(data);
     if (message.type === 'pixel_updated') {
@@ -121,7 +125,7 @@ for (let i = 0; i < NUM_CLIENTS; i++) {
       console.log(`  Active users: ${message.activeUsers}`);
     }
   });
-  
+
   clients.push(ws);
 }
 
@@ -174,16 +178,19 @@ echo "✓ All requests completed"
 ## 🎨 Interactive Testing Scenarios
 
 ### Scenario 1: Collaborative Drawing
+
 1. Window 1: Draw a circle outline
 2. Window 2: Fill the circle with a different color
 3. Window 3: Add details
 4. **Expected**: All windows show the complete collaborative artwork
 
 ### Scenario 2: Race Condition Test
+
 1. Windows 1 & 2: Click the exact same pixel at the same time
 2. **Expected**: Both updates go through, last one wins (by timestamp)
 
 ### Scenario 3: Network Interruption
+
 1. Open DevTools in one window
 2. Go to Network tab -> Throttling -> Offline
 3. Try to draw
@@ -192,6 +199,7 @@ echo "✓ All requests completed"
 6. **Expected**: Automatically reconnects
 
 ### Scenario 4: Rapid Updates
+
 1. Window 1: Click and drag rapidly across the canvas
 2. **Expected**: Other windows show smooth updates with minimal lag
 
@@ -268,29 +276,29 @@ const clients = [];
 for (let i = 0; i < NUM_USERS; i++) {
   const ws = new WebSocket('ws://localhost:3002');
   const userId = i + 1;
-  
+
   ws.on('open', () => {
     connectedUsers++;
     console.log(`✓ User ${userId} connected (${connectedUsers}/${NUM_USERS})`);
-    
+
     // When all users connected, start drawing
     if (connectedUsers === NUM_USERS) {
       console.log('\\n🎨 All users connected! Starting collaborative drawing...\\n');
       startDrawing();
     }
   });
-  
+
   ws.on('message', (data) => {
     const msg = JSON.parse(data);
     if (msg.type === 'pixel_updated') {
       totalPixelsReceived++;
     }
   });
-  
+
   ws.on('error', (err) => {
     console.error(`❌ User ${userId} error:`, err.message);
   });
-  
+
   ws.userId = userId;
   clients.push(ws);
 }
@@ -302,18 +310,18 @@ function startDrawing() {
         const x = Math.floor(Math.random() * 50);
         const y = Math.floor(Math.random() * 50);
         const color = colors[index % colors.length];
-        
+
         ws.send(JSON.stringify({
           type: 'pixel_update',
           x, y, color
         }));
-        
+
         totalPixelsSent++;
         console.log(`  User ${ws.userId} drew pixel at (${x}, ${y}) in ${color}`);
       }
     }, index * 100);
   });
-  
+
   // Show results after 5 seconds
   setTimeout(showResults, 5000);
 }
@@ -327,13 +335,13 @@ function showResults() {
   console.log(`Total Pixels Received: ${totalPixelsReceived}`);
   console.log(`Expected Broadcasts: ${totalPixelsSent * NUM_USERS}`);
   console.log('');
-  
+
   if (totalPixelsReceived >= totalPixelsSent * NUM_USERS * 0.9) {
     console.log('✅ PASS: Multi-user broadcasting works correctly!');
   } else {
     console.log('⚠️  WARN: Some broadcasts may have been missed');
   }
-  
+
   // Cleanup
   clients.forEach(ws => ws.close());
   process.exit(0);
@@ -361,6 +369,7 @@ node test-multiuser.js
 ## 📱 Mobile Testing
 
 1. Find your local IP:
+
    ```bash
    ipconfig getifaddr en0
    ```
@@ -368,6 +377,7 @@ node test-multiuser.js
 2. Update frontend config temporarily to use your IP instead of localhost
 
 3. Open on mobile devices:
+
    ```
    http://YOUR_IP:3000
    ```
@@ -379,6 +389,7 @@ node test-multiuser.js
 ## 🐛 Troubleshooting
 
 ### "Not connected to server" error
+
 ```bash
 # Check if WebSocket Gateway is running
 curl http://localhost:3002/health
@@ -388,6 +399,7 @@ ps aux | grep websocket-gateway
 ```
 
 ### Updates not appearing in other windows
+
 ```bash
 # Check WebSocket logs should show "Broadcast to N clients"
 # If N=1, only one client is connected
@@ -398,6 +410,7 @@ curl http://localhost:3002/health
 ```
 
 ### User count always shows 0
+
 ```bash
 # The stats message is sent every 30 seconds
 # Wait 30 seconds or check browser console for WebSocket messages
@@ -450,6 +463,7 @@ echo "Press Ctrl+C to stop all services"
 ```
 
 Save and run:
+
 ```bash
 chmod +x demo.sh
 ./demo.sh

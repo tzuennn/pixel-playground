@@ -7,6 +7,7 @@ Cloud Pixel Playground is a real-time collaborative canvas application demonstra
 ## Components
 
 ### 1. Frontend (Port 3000)
+
 - **Technology**: Vanilla JavaScript, HTML5 Canvas
 - **Purpose**: Interactive 50×50 pixel grid UI
 - **Key Features**:
@@ -17,6 +18,7 @@ Cloud Pixel Playground is a real-time collaborative canvas application demonstra
   - Optimistic UI updates
 
 ### 2. WebSocket Gateway (Port 3002)
+
 - **Technology**: Node.js + ws library
 - **Purpose**: Real-time broadcast service
 - **Key Features**:
@@ -27,6 +29,7 @@ Cloud Pixel Playground is a real-time collaborative canvas application demonstra
   - Health monitoring
 
 ### 3. Canvas State API (Port 3001)
+
 - **Technology**: Node.js + Express + Redis client
 - **Purpose**: RESTful API for canvas operations
 - **Key Features**:
@@ -37,6 +40,7 @@ Cloud Pixel Playground is a real-time collaborative canvas application demonstra
   - Health checks
 
 ### 4. Redis Database (Port 6379)
+
 - **Technology**: Redis 7 Alpine
 - **Purpose**: Persistent storage
 - **Key Features**:
@@ -48,6 +52,7 @@ Cloud Pixel Playground is a real-time collaborative canvas application demonstra
 ## Data Flow
 
 ### Pixel Update Flow
+
 ```
 User Click → Frontend
            ↓
@@ -65,6 +70,7 @@ User Click → Frontend
 ```
 
 ### Initial Canvas Load
+
 ```
 Browser → Frontend
         ↓
@@ -82,6 +88,7 @@ Browser → Frontend
 ## Kubernetes Architecture
 
 ### Networking
+
 - **Ingress**: Single entry point for external traffic
   - `/` → Frontend service
   - `/api` → Canvas API service
@@ -94,6 +101,7 @@ Browser → Frontend
   - `frontend:3000`: Frontend ClusterIP
 
 ### Storage
+
 - **PersistentVolumeClaim**: Redis data persistence
   - Storage Class: `local-path` (k3s default)
   - Size: 1Gi
@@ -101,6 +109,7 @@ Browser → Frontend
   - Mount Path: `/data` in Redis pod
 
 ### Scalability
+
 - **Stateless Services** (horizontally scalable):
   - Canvas API: 2 replicas (can scale to N)
   - WebSocket Gateway: 2 replicas (can scale to N)
@@ -110,11 +119,14 @@ Browser → Frontend
   - Redis: 1 replica (single source of truth)
 
 ### Resource Management
+
 Each service has defined resource limits:
+
 - **Memory**: 64Mi-256Mi depending on service
 - **CPU**: 50m-200m depending on service
 
 ### Health Checks
+
 - **Liveness Probes**: Restart containers if unhealthy
 - **Readiness Probes**: Remove from service load balancing if not ready
 
@@ -142,13 +154,16 @@ Each service has defined resource limits:
 ## Communication Patterns
 
 ### Synchronous (HTTP/REST)
+
 - Frontend → Canvas API (initial load)
 - WebSocket Gateway → Canvas API (pixel updates)
 
 ### Asynchronous (WebSocket)
+
 - Frontend ↔ WebSocket Gateway (real-time updates)
 
 ### Publish-Subscribe Pattern
+
 - WebSocket Gateway acts as message broker
 - All connected clients subscribe to pixel updates
 - Any client can publish updates
@@ -156,11 +171,13 @@ Each service has defined resource limits:
 ## Security Considerations
 
 ### Current Implementation (Development)
+
 - No authentication/authorization
 - No rate limiting
 - No input sanitization beyond basic validation
 
 ### Production Recommendations
+
 - Add OAuth2/JWT authentication
 - Implement rate limiting per user
 - Add CORS restrictions
@@ -172,11 +189,13 @@ Each service has defined resource limits:
 ## Monitoring and Observability
 
 ### Health Endpoints
+
 - Frontend: `http://localhost:3000/health`
 - Canvas API: `http://localhost:3001/health`
 - WebSocket Gateway: `http://localhost:3002/health`
 
 ### Kubernetes Commands
+
 ```bash
 # View pod status
 kubectl get pods
@@ -197,16 +216,19 @@ kubectl get events --sort-by=.metadata.creationTimestamp
 ## Performance Characteristics
 
 ### Latency
+
 - Pixel Update: < 100ms end-to-end
 - Initial Canvas Load: < 500ms
 - WebSocket Broadcast: < 50ms
 
 ### Capacity
+
 - Concurrent Users: 100+ (limited by WebSocket Gateway)
 - Canvas Size: 50×50 = 2,500 pixels
 - Redis Memory: ~1MB for canvas data
 
 ### Bottlenecks
+
 1. WebSocket Gateway: Connection limit per pod (~1000 connections)
 2. Redis: Single instance (can be clustered for HA)
 3. Network: Kubernetes CNI bandwidth

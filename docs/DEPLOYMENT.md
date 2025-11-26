@@ -3,6 +3,7 @@
 ## Prerequisites
 
 ### Required Tools
+
 - **Docker**: For building container images
 - **Kubernetes**: k3s, minikube, or any Kubernetes cluster
 - **kubectl**: Kubernetes command-line tool
@@ -10,6 +11,7 @@
 ### Installation
 
 #### Docker
+
 ```bash
 # macOS
 brew install docker
@@ -18,6 +20,7 @@ brew install docker
 ```
 
 #### kubectl
+
 ```bash
 # macOS
 brew install kubectl
@@ -27,6 +30,7 @@ kubectl version --client
 ```
 
 #### k3s (Lightweight Kubernetes)
+
 ```bash
 # macOS (using multipass)
 brew install multipass
@@ -40,6 +44,7 @@ k3d cluster create pixel-playground
 ```
 
 #### Minikube (Alternative)
+
 ```bash
 # macOS
 brew install minikube
@@ -66,6 +71,7 @@ open http://localhost:3000
 ```
 
 **What this does:**
+
 - Starts Redis in Docker
 - Runs Canvas API on port 3001
 - Runs WebSocket Gateway on port 3002
@@ -94,6 +100,7 @@ open http://localhost:8080
 ## Step-by-Step Kubernetes Deployment
 
 ### Step 1: Verify Cluster
+
 ```bash
 # Check cluster status
 kubectl cluster-info
@@ -105,6 +112,7 @@ kubectl get nodes
 ```
 
 ### Step 2: Build Images
+
 ```bash
 # Build all three images
 cd /path/to/pixel-playground
@@ -115,6 +123,7 @@ docker images | grep -E "canvas-api|websocket-gateway|frontend"
 ```
 
 **Expected Output:**
+
 ```
 canvas-api            latest    abc123    2 minutes ago    200MB
 websocket-gateway     latest    def456    1 minute ago     195MB
@@ -129,6 +138,7 @@ frontend              latest    ghi789    30 seconds ago   180MB
 ```
 
 This script deploys services in order:
+
 1. **Redis** (StatefulSet with PVC)
 2. **Canvas API** (Deployment)
 3. **WebSocket Gateway** (Deployment)
@@ -162,12 +172,14 @@ kubectl get pvc
 ### Step 5: Access Application
 
 #### Option A: NodePort (Simplest)
+
 ```bash
 # Application is available at:
 open http://localhost:30000
 ```
 
 #### Option B: Port Forwarding
+
 ```bash
 # Forward local port to frontend service
 kubectl port-forward svc/frontend 8080:3000
@@ -177,6 +189,7 @@ open http://localhost:8080
 ```
 
 #### Option C: Ingress (If NGINX Ingress Controller installed)
+
 ```bash
 # Install NGINX Ingress Controller
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
@@ -207,12 +220,11 @@ kubectl logs <pod-name>
 ```
 
 **Common Issues:**
+
 - **ImagePullBackOff**: Images not built or not available
   - Solution: Run `./scripts/build.sh` again
-  
 - **CrashLoopBackOff**: Container starting then crashing
   - Solution: Check logs with `kubectl logs <pod-name>`
-  
 - **Pending**: Insufficient resources or PVC issues
   - Solution: Check with `kubectl describe pod <pod-name>`
 
@@ -402,22 +414,26 @@ kubectl exec redis-0 -- redis-cli SHUTDOWN SAVE
 ## Environment Variables
 
 ### Frontend
+
 - `PORT`: Server port (default: 3000)
 - `WS_URL`: WebSocket Gateway URL
 - `API_URL`: Canvas API URL
 
 ### Canvas API
+
 - `PORT`: Server port (default: 3001)
 - `REDIS_HOST`: Redis hostname
 - `REDIS_PORT`: Redis port
 
 ### WebSocket Gateway
+
 - `PORT`: Server port (default: 3002)
 - `CANVAS_API_URL`: Canvas API URL
 
 ## Next Steps
 
 After successful deployment:
+
 1. Open the application in multiple browser windows
 2. Start drawing and see real-time collaboration
 3. Check Kubernetes dashboard for resource usage

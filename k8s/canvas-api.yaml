@@ -8,10 +8,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 3001
-    targetPort: 3001
-    protocol: TCP
-    name: http
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
   selector:
     app: canvas-api
 ---
@@ -32,35 +32,35 @@ spec:
         app: canvas-api
     spec:
       containers:
-      - name: canvas-api
-        image: canvas-api:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 3001
-          name: http
-        env:
-        - name: PORT
-          value: "3001"
-        - name: REDIS_HOST
-          value: "redis-0.redis"
-        - name: REDIS_PORT
-          value: "6379"
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: canvas-api
+          image: canvas-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: PORT
+              value: "3001"
+            - name: REDIS_HOST
+              value: "redis-0.redis"
+            - name: REDIS_PORT
+              value: "6379"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5

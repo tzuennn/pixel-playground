@@ -3,6 +3,7 @@
 ## Testing Strategy
 
 This guide covers testing at multiple levels:
+
 1. Component Testing (Individual services)
 2. Integration Testing (Service interactions)
 3. End-to-End Testing (Full user flow)
@@ -13,6 +14,7 @@ This guide covers testing at multiple levels:
 ### Canvas API Testing
 
 #### Test 1: Health Check
+
 ```bash
 # Start service locally
 cd canvas-api
@@ -24,6 +26,7 @@ curl http://localhost:3001/health
 ```
 
 **Expected Response:**
+
 ```json
 {
   "status": "ok",
@@ -33,11 +36,13 @@ curl http://localhost:3001/health
 ```
 
 #### Test 2: Get Canvas
+
 ```bash
 curl http://localhost:3001/api/canvas
 ```
 
 **Expected Response:**
+
 ```json
 {
   "width": 50,
@@ -51,6 +56,7 @@ curl http://localhost:3001/api/canvas
 ```
 
 #### Test 3: Update Pixel
+
 ```bash
 curl -X PUT http://localhost:3001/api/pixel \
   -H "Content-Type: application/json" \
@@ -58,6 +64,7 @@ curl -X PUT http://localhost:3001/api/pixel \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -69,6 +76,7 @@ curl -X PUT http://localhost:3001/api/pixel \
 ```
 
 #### Test 4: Invalid Pixel
+
 ```bash
 curl -X PUT http://localhost:3001/api/pixel \
   -H "Content-Type: application/json" \
@@ -76,6 +84,7 @@ curl -X PUT http://localhost:3001/api/pixel \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "error": "Coordinates out of bounds"
@@ -83,6 +92,7 @@ curl -X PUT http://localhost:3001/api/pixel \
 ```
 
 #### Test 5: Reset Canvas
+
 ```bash
 curl -X POST http://localhost:3001/api/canvas/reset
 ```
@@ -90,6 +100,7 @@ curl -X POST http://localhost:3001/api/canvas/reset
 ### WebSocket Gateway Testing
 
 #### Test 1: WebSocket Connection
+
 ```bash
 # Install wscat if not already
 npm install -g wscat
@@ -99,22 +110,26 @@ wscat -c ws://localhost:3002
 ```
 
 **Expected:**
+
 ```json
 < {"type":"connected","message":"Connected to Cloud Pixel Playground","clientId":"client_..."}
 ```
 
 #### Test 2: Send Pixel Update
+
 ```bash
 # After connecting with wscat
 > {"type":"pixel_update","x":10,"y":10,"color":"#0000FF"}
 ```
 
 **Expected:**
+
 ```json
 < {"type":"pixel_updated","x":10,"y":10,"color":"#0000FF","timestamp":...}
 ```
 
 #### Test 3: Multiple Connections
+
 ```bash
 # Terminal 1
 wscat -c ws://localhost:3002
@@ -131,6 +146,7 @@ wscat -c ws://localhost:3002
 ### Frontend Testing
 
 #### Test 1: Frontend Loads
+
 ```bash
 cd frontend
 npm install
@@ -141,6 +157,7 @@ open http://localhost:3000
 ```
 
 **Verify:**
+
 - [ ] Page loads without errors
 - [ ] Canvas displays 50×50 grid
 - [ ] Status shows "Connected"
@@ -148,11 +165,13 @@ open http://localhost:3000
 - [ ] Preset colors clickable
 
 #### Test 2: Drawing Works
+
 1. Click on a pixel
 2. Verify pixel color changes immediately
 3. Open browser console - no errors
 
 #### Test 3: Multi-User Collaboration
+
 1. Open http://localhost:3000 in two browser windows
 2. Draw in one window
 3. Verify the other window updates automatically
@@ -169,7 +188,7 @@ open http://localhost:3000
 
 # Run integration tests
 curl http://localhost:3001/health  # Canvas API
-curl http://localhost:3002/health  # WebSocket Gateway  
+curl http://localhost:3002/health  # WebSocket Gateway
 curl http://localhost:3000/health  # Frontend
 
 # Test pixel flow
@@ -202,18 +221,21 @@ curl -X PUT http://localhost:3001/api/pixel \
 Start the application and go through this checklist:
 
 #### Initial Load
+
 - [ ] Application loads at http://localhost:3000
 - [ ] Status indicator shows green (connected)
 - [ ] Canvas displays 50×50 grid
 - [ ] All pixels are white initially (or last saved state)
 
 #### Drawing
+
 - [ ] Click on a pixel - it changes to selected color
 - [ ] Click and drag - multiple pixels change
 - [ ] Change color picker - new color applies
 - [ ] Click preset colors - they apply immediately
 
 #### Real-Time Collaboration
+
 - [ ] Open second browser window
 - [ ] Draw in first window
 - [ ] Second window updates automatically
@@ -222,12 +244,14 @@ Start the application and go through this checklist:
 - [ ] User count shows 2
 
 #### Canvas Operations
+
 - [ ] Click "Clear Canvas"
 - [ ] Confirm dialog appears
 - [ ] Canvas resets to white
 - [ ] Change persists across refresh
 
 #### Error Handling
+
 - [ ] Stop WebSocket Gateway
 - [ ] Status shows "Disconnected"
 - [ ] Error message appears
@@ -235,6 +259,7 @@ Start the application and go through this checklist:
 - [ ] Automatically reconnects
 
 #### Persistence
+
 - [ ] Draw some pixels
 - [ ] Stop all services
 - [ ] Start all services again
@@ -257,6 +282,7 @@ kubectl get pods
 ```
 
 **Expected:**
+
 ```
 NAME                                  READY   STATUS    RESTARTS   AGE
 redis-0                               1/1     Running   0          2m
@@ -374,28 +400,28 @@ let connectedClients = 0;
 
 for (let i = 0; i < NUM_CLIENTS; i++) {
   const ws = new WebSocket('ws://localhost:3002');
-  
+
   ws.on('open', () => {
     connectedClients++;
     console.log(`Connected: ${connectedClients}/${NUM_CLIENTS}`);
-    
+
     // Send a pixel update every second
     setInterval(() => {
       const x = Math.floor(Math.random() * 50);
       const y = Math.floor(Math.random() * 50);
       const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-      
+
       ws.send(JSON.stringify({
         type: 'pixel_update',
         x, y, color
       }));
     }, 1000);
   });
-  
+
   ws.on('message', (data) => {
     // Receiving updates
   });
-  
+
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
   });
@@ -432,10 +458,10 @@ test_endpoint() {
   local name=$1
   local url=$2
   local expected=$3
-  
+
   echo -n "Testing $name... "
   response=$(curl -s "$url")
-  
+
   if echo "$response" | grep -q "$expected"; then
     echo -e "${GREEN}✓ PASSED${NC}"
     ((PASSED++))
@@ -500,6 +526,7 @@ kubectl get events --sort-by=.metadata.creationTimestamp --watch
 ## Test Results Documentation
 
 After running tests, document:
+
 - ✅ All tests passed
 - ⚠️ Tests with warnings
 - ❌ Failed tests

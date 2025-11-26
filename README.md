@@ -41,6 +41,7 @@ A real-time collaborative 50×50 pixel canvas deployed on Kubernetes.
    - kubectl configured
 
 2. **Build and Deploy**:
+
    ```bash
    # Build all services
    ./scripts/build.sh
@@ -60,6 +61,7 @@ A real-time collaborative 50×50 pixel canvas deployed on Kubernetes.
 ## Development
 
 Each service is in its own directory:
+
 - `frontend/` - React-based UI
 - `websocket-gateway/` - Node.js WebSocket server
 - `canvas-api/` - Node.js REST API

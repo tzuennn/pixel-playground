@@ -3,6 +3,7 @@
 ## What We Built
 
 A complete cloud-native collaborative pixel art application demonstrating:
+
 - ✅ Microservices architecture
 - ✅ Real-time WebSocket communication
 - ✅ Kubernetes orchestration
@@ -61,12 +62,14 @@ pixel-playground/
 ## Quick Start Commands
 
 ### Local Development (Fastest)
+
 ```bash
 ./scripts/dev-local.sh
 # Access: http://localhost:3000
 ```
 
 ### Kubernetes Deployment (Production-like)
+
 ```bash
 ./scripts/build.sh     # Build images
 ./scripts/deploy.sh    # Deploy to K8s
@@ -74,6 +77,7 @@ pixel-playground/
 ```
 
 ### Cleanup
+
 ```bash
 ./scripts/cleanup.sh   # Remove from Kubernetes
 ./scripts/stop-local.sh # Stop local services
@@ -82,6 +86,7 @@ pixel-playground/
 ## Architecture Highlights
 
 ### Component Communication
+
 ```
 User Browser
     ↓ HTTP (initial load)
@@ -95,6 +100,7 @@ Redis Database (Persistent storage)
 ```
 
 ### Kubernetes Resources
+
 - **StatefulSet**: Redis with persistent volume
 - **Deployments**: Canvas API (2), WebSocket Gateway (2), Frontend (2)
 - **Services**: ClusterIP for internal communication
@@ -102,6 +108,7 @@ Redis Database (Persistent storage)
 - **PersistentVolumeClaim**: 1Gi storage for Redis
 
 ### Key Features
+
 1. **Real-time Collaboration**: Multiple users draw simultaneously
 2. **Persistent Storage**: Canvas survives pod restarts
 3. **Horizontal Scaling**: Add replicas without code changes
@@ -121,6 +128,7 @@ Redis Database (Persistent storage)
 ## Testing Status
 
 ### ✅ Components Tested
+
 - [ ] Canvas API endpoints (GET, PUT, POST)
 - [ ] WebSocket Gateway connections and broadcasts
 - [ ] Frontend UI rendering and interactions
@@ -128,12 +136,14 @@ Redis Database (Persistent storage)
 - [ ] Health check endpoints
 
 ### ✅ Integration Tested
+
 - [ ] Frontend → API communication
 - [ ] Frontend → WebSocket communication
 - [ ] WebSocket → API communication
 - [ ] API → Redis communication
 
 ### ✅ Kubernetes Tested
+
 - [ ] Pod deployment and startup
 - [ ] Service discovery and DNS
 - [ ] Persistent volume claims
@@ -143,12 +153,14 @@ Redis Database (Persistent storage)
 ## Next Steps for Testing
 
 1. **Run Local Tests**:
+
    ```bash
    ./scripts/dev-local.sh
    # Test in browser: http://localhost:3000
    ```
 
 2. **Run Kubernetes Tests**:
+
    ```bash
    ./scripts/build.sh
    ./scripts/deploy.sh
@@ -162,6 +174,7 @@ Redis Database (Persistent storage)
    - Verify user count updates
 
 4. **Persistence Test**:
+
    ```bash
    # Draw something
    kubectl delete pod redis-0  # Delete Redis
@@ -198,6 +211,7 @@ Redis Database (Persistent storage)
 ## Future Enhancements
 
 Priority improvements:
+
 1. User authentication (OAuth2/JWT)
 2. Multiple canvases/rooms
 3. Undo/redo functionality
@@ -232,6 +246,7 @@ Priority improvements:
 ## Learning Outcomes
 
 After building this project, you understand:
+
 - How microservices communicate
 - How Kubernetes orchestrates containers
 - How persistent storage works in cloud

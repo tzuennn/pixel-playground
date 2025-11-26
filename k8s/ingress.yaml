@@ -11,33 +11,33 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: localhost
-    http:
-      paths:
-      # Frontend - Root path
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend
-            port:
-              number: 3000
-      # Canvas API - /api path
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: canvas-api
-            port:
-              number: 3001
-      # WebSocket Gateway - /ws path
-      - path: /ws
-        pathType: Prefix
-        backend:
-          service:
-            name: websocket-gateway
-            port:
-              number: 3002
+    - host: localhost
+      http:
+        paths:
+          # Frontend - Root path
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+          # Canvas API - /api path
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: canvas-api
+                port:
+                  number: 3001
+          # WebSocket Gateway - /ws path
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: websocket-gateway
+                port:
+                  number: 3002
 ---
 # Alternative Ingress for environments without NGINX Ingress Controller
 # Use LoadBalancer or NodePort services as fallback
@@ -50,10 +50,10 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 3000
-    targetPort: 3000
-    nodePort: 30000
-    protocol: TCP
-    name: http
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30000
+      protocol: TCP
+      name: http
   selector:
     app: frontend

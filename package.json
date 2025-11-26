@@ -1,0 +1,23 @@
+{
+  "name": "pixel-playground",
+  "version": "1.0.0",
+  "description": "A real-time collaborative 50×50 pixel canvas deployed on Kubernetes.",
+  "main": "test-multiuser.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
+    "format:canvas-api": "prettier --write \"canvas-api/**/*.js\"",
+    "format:websocket": "prettier --write \"websocket-gateway/**/*.js\"",
+    "format:frontend": "prettier --write \"frontend/**/*.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}
