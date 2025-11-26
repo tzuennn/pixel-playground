@@ -1,0 +1,235 @@
+/**
+ * Main Application Module
+ * Orchestrates all components and handles application logic
+ */
+
+import { CanvasManager } from "./canvasManager.js";
+import { ApiService } from "./apiService.js";
+import { WebSocketService } from "./websocketService.js";
+import { UIController } from "./uiController.js";
+
+class PixelPlaygroundApp {
+  constructor() {
+    this.canvasManager = null;
+    this.wsService = null;
+    this.uiController = null;
+    this.isDrawing = false;
+  }
+
+  /**
+   * Initialize the application
+   */
+  async init() {
+    try {
+      // Initialize UI controller
+      this.uiController = new UIController();
+
+      // Initialize canvas manager
+      const canvas = document.getElementById("canvas");
+      this.canvasManager = new CanvasManager(canvas);
+
+      // Load canvas data
+      await this.loadCanvas();
+
+      // Connect WebSocket
+      this.connectWebSocket();
+
+      // Setup event listeners
+      this.setupEventListeners();
+
+      console.log("Application initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize application:", error);
+      this.uiController.showError(
+        "Failed to initialize application: " + error.message
+      );
+    }
+  }
+
+  /**
+   * Load canvas from API
+   */
+  async loadCanvas() {
+    try {
+      this.uiController.updateStatus({
+        connected: false,
+        text: "Loading canvas...",
+      });
+
+      const canvasData = await ApiService.loadCanvas();
+      this.canvasManager.setCanvasData(canvasData);
+      this.canvasManager.drawCanvas();
+
+      this.uiController.updateStatus({
+        connected: false,
+        text: "Canvas loaded",
+      });
+    } catch (error) {
+      this.uiController.showError(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Connect to WebSocket
+   */
+  connectWebSocket() {
+    this.wsService = new WebSocketService();
+
+    // Handle status changes
+    this.wsService.connect((status) => {
+      this.uiController.updateStatus(status);
+      if (status.connected) {
+        this.uiController.clearError();
+      } else {
+        this.uiController.showError("Connection error. Retrying...");
+      }
+    });
+
+    // Handle different message types
+    this.wsService.on("connected", (message) => {
+      console.log("Connected to server:", message.message);
+    });
+
+    this.wsService.on("pixel_updated", (message) => {
+      const { x, y, color } = message;
+      this.canvasManager.updatePixel(x, y, color);
+    });
+
+    this.wsService.on("stats", (message) => {
+      this.uiController.updateUserCount(message.activeUsers);
+    });
+
+    this.wsService.on("error", (message) => {
+      this.uiController.showError(message.message);
+    });
+  }
+
+  /**
+   * Setup event listeners
+   */
+  setupEventListeners() {
+    const canvas = this.canvasManager.canvas;
+
+    // Mouse events
+    canvas.addEventListener("mousedown", (e) => this.handleDrawStart(e));
+    canvas.addEventListener("mousemove", (e) => this.handleDrawMove(e));
+    canvas.addEventListener("mouseup", () => this.handleDrawEnd());
+    canvas.addEventListener("mouseleave", () => this.handleDrawEnd());
+
+    // Touch events
+    canvas.addEventListener("touchstart", (e) => this.handleTouchStart(e));
+    canvas.addEventListener("touchmove", (e) => this.handleTouchMove(e));
+    canvas.addEventListener("touchend", () => this.handleDrawEnd());
+
+    // Preset colors
+    this.uiController.setupPresetColors();
+
+    // Clear button - expose to global scope for onclick
+    window.clearCanvas = () => this.clearCanvas();
+  }
+
+  /**
+   * Handle draw start
+   */
+  handleDrawStart(event) {
+    this.isDrawing = true;
+    this.updatePixel(event);
+  }
+
+  /**
+   * Handle draw move
+   */
+  handleDrawMove(event) {
+    if (this.isDrawing) {
+      this.updatePixel(event);
+    }
+  }
+
+  /**
+   * Handle draw end
+   */
+  handleDrawEnd() {
+    this.isDrawing = false;
+  }
+
+  /**
+   * Handle touch start
+   */
+  handleTouchStart(event) {
+    event.preventDefault();
+    this.isDrawing = true;
+
+    const touch = event.touches[0];
+    const mouseEvent = new MouseEvent("mousedown", {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    });
+    this.updatePixel(mouseEvent);
+  }
+
+  /**
+   * Handle touch move
+   */
+  handleTouchMove(event) {
+    event.preventDefault();
+
+    if (this.isDrawing) {
+      const touch = event.touches[0];
+      const mouseEvent = new MouseEvent("mousemove", {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      });
+      this.updatePixel(mouseEvent);
+    }
+  }
+
+  /**
+   * Update pixel
+   */
+  updatePixel(event) {
+    const { x, y } = this.canvasManager.getPixelCoordinates(event);
+
+    if (this.canvasManager.isValidCoordinates(x, y)) {
+      const color = this.uiController.getCurrentColor();
+
+      if (this.wsService.sendPixelUpdate(x, y, color)) {
+        // Optimistic update
+        this.canvasManager.updatePixel(x, y, color);
+      } else {
+        this.uiController.showError("Not connected to server");
+      }
+    }
+  }
+
+  /**
+   * Clear canvas
+   */
+  async clearCanvas() {
+    if (
+      !this.uiController.confirm(
+        "Are you sure you want to clear the entire canvas?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ApiService.resetCanvas();
+      await this.loadCanvas();
+    } catch (error) {
+      this.uiController.showError(error.message);
+    }
+  }
+}
+
+// Initialize application when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    const app = new PixelPlaygroundApp();
+    app.init();
+  });
+} else {
+  const app = new PixelPlaygroundApp();
+  app.init();
+}

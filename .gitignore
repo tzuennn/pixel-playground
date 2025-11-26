@@ -25,6 +25,9 @@ dist/
 build/
 *.log
 
+# AI logs (keep .gitkeep but ignore actual logs)
+ai-log/terminal/*.log
+
 # Test coverage
 coverage/
 .nyc_output/
