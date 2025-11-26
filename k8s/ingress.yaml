@@ -1,27 +1,22 @@
-# Ingress - Single entry point for all services
+# Ingress - Single entry point for all services (Traefik)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: pixel-playground-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    nginx.ingress.kubernetes.io/websocket-services: "websocket-gateway"
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  ingressClassName: nginx
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
-          # Frontend - Root path
-          - path: /
+          # WebSocket Gateway - /ws path (must be first for WebSocket upgrade)
+          - path: /ws
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: websocket-gateway
                 port:
-                  number: 3000
+                  number: 3002
           # Canvas API - /api path
           - path: /api
             pathType: Prefix
@@ -30,14 +25,14 @@ spec:
                 name: canvas-api
                 port:
                   number: 3001
-          # WebSocket Gateway - /ws path
-          - path: /ws
+          # Frontend - Root path (must be last as catch-all)
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: websocket-gateway
+                name: frontend
                 port:
-                  number: 3002
+                  number: 3000
 ---
 # Alternative Ingress for environments without NGINX Ingress Controller
 # Use LoadBalancer or NodePort services as fallback

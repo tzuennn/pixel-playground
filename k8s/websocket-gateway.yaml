@@ -43,6 +43,10 @@ spec:
               value: "3002"
             - name: CANVAS_API_URL
               value: "http://canvas-api:3001"
+            - name: REDIS_HOST
+              value: "redis-0.redis"
+            - name: REDIS_PORT
+              value: "6379"
           resources:
             requests:
               memory: "128Mi"

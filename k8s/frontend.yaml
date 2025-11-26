@@ -42,9 +42,9 @@ spec:
             - name: PORT
               value: "3000"
             - name: WS_URL
-              value: "ws://localhost:8080/ws"
+              value: "ws://localhost/ws"
             - name: API_URL
-              value: "http://localhost:8080/api"
+              value: "http://localhost"
           resources:
             requests:
               memory: "64Mi"
