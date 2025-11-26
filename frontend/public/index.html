@@ -32,6 +32,14 @@
 
       <div id="errorContainer"></div>
 
+      <!-- Active Users Panel -->
+      <div class="active-users-panel">
+        <h3>🎨 Active Artists</h3>
+        <div id="activeUsersList" class="users-list">
+          <!-- Users will be dynamically added here -->
+        </div>
+      </div>
+
       <div class="controls">
         <div class="color-picker">
           <label for="colorPicker"><strong>Color:</strong></label>
@@ -88,6 +96,10 @@
             title="White"
           ></div>
         </div>
+
+        <button class="button" id="editUsernameBtn">
+          ✏️ Edit Username
+        </button>
 
         <button class="button secondary" onclick="clearCanvas()">
           Clear Canvas

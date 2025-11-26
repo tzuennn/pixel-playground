@@ -17,8 +17,8 @@ Frontend (3000) → WebSocket Gateway (3002) → Canvas API (3001) → Redis (63
 
 ### Service Responsibilities
 
-- **Frontend**: Vanilla JS/HTML5 Canvas. Exposes `/config.js` endpoint to inject env vars (`WS_URL`, `API_URL`)
-- **WebSocket Gateway**: Stateless broadcaster. Does NOT store state—forwards updates to Canvas API then broadcasts response
+- **Frontend**: Vanilla JS/HTML5 Canvas with ES6 modules. Exposes `/config.js` endpoint to inject env vars (`WS_URL`, `API_URL`). Modular architecture: `config.js`, `canvasManager.js`, `apiService.js`, `websocketService.js`, `uiController.js`, `app.js`
+- **WebSocket Gateway**: Stateless broadcaster. Tracks usernames per connection (Map<ws, {clientId, username, connectedAt}>). Forwards updates to Canvas API then broadcasts response with username
 - **Canvas API**: Business logic + validation. Single source of truth via Redis (`canvas:pixels` hash with `x,y` keys)
 - **Redis**: StatefulSet with PVC at `/data`. Canvas initialized to 2,500 white pixels (`#FFFFFF`) on first start
 
@@ -83,13 +83,15 @@ kubectl exec -it redis-0 -- redis-cli HGET canvas:pixels "25,25"  # Check specif
 
 ```javascript
 // Client → Gateway
-{ type: "pixel_update", x: 10, y: 20, color: "#FF0000" }
+{ type: "set_username", username: "Alice" }  // Set/change username (NEW)
+{ type: "pixel_update", x: 10, y: 20, color: "#FF0000", username: "Alice" }  // Now includes username
 { type: "ping" }  // Health check
 
 // Gateway → Clients
-{ type: "pixel_updated", x: 10, y: 20, color: "#FF0000", timestamp: 1234567890 }
+{ type: "pixel_updated", x: 10, y: 20, color: "#FF0000", username: "Alice", timestamp: 1234567890 }  // Now includes username
+{ type: "user_list", users: ["Alice", "Bob"], timestamp: 1234567890 }  // Active usernames (NEW)
 { type: "connected", message: "...", clientId: "client_..." }
-{ type: "stats", activeUsers: 5, timestamp: 1234567890 }  // Every 30s
+{ type: "stats", activeUsers: 5, timestamp: 1234567890 }  // Every 30s + immediate on connect/disconnect
 { type: "error", message: "Invalid pixel data" }
 ```
 
@@ -120,6 +122,7 @@ kubectl exec -it redis-0 -- redis-cli HGET canvas:pixels "25,25"  # Check specif
 - WebSocket Gateway calls Canvas API via `fetch(CANVAS_API_URL + '/api/pixel', { method: 'PUT', ... })`
 - Canvas API connects to Redis via `redis.createClient({ socket: { host: REDIS_HOST, ... } })`
 - Frontend loads config from `/config.js` on page load (see `index.html` script tag)
+- **Username System**: Frontend stores username in `localStorage` key `pixelPlaygroundUsername`, sends via `set_username` message on connect, Gateway tracks in Map (ws → {clientId, username, connectedAt})
 
 ### K8s Service Discovery
 
@@ -177,9 +180,18 @@ kubectl scale deployment frontend --replicas=3
 
 ## Key Files Reference
 
-- `frontend/public/index.html`: Canvas rendering, WebSocket client logic (643 lines, check lines 200-400 for WebSocket setup)
+- `frontend/public/index.html`: HTML structure (~116 lines), includes Active Users Panel
+- `frontend/public/css/styles.css`: All styles including username feature UI (user panels, drawing indicators, animations)
+- `frontend/public/js/app.js`: Main application orchestration, integrates all modules
+- `frontend/public/js/websocketService.js`: WebSocket connection management, sends username with pixel updates
+- `frontend/public/js/uiController.js`: DOM manipulation, username prompt, active users display, drawing indicators with XSS protection
+- `frontend/public/js/canvasManager.js`: Canvas rendering logic
+- `frontend/public/js/apiService.js`: REST API communication
+- `frontend/public/js/config.js`: Configuration loaded from `/config.js` endpoint
 - `canvas-api/server.js`: Redis initialization at startup (`initRedis()` → `initializeCanvas()`)
-- `websocket-gateway/server.js`: `handlePixelUpdate()` function shows fetch → broadcast pattern
+- `websocket-gateway/server.js`: Uses Map for client tracking (ws → {clientId, username, connectedAt}), `handleSetUsername()` and `handlePixelUpdate()` functions
 - `k8s/*.yaml`: Note `REDIS_HOST=redis-0.redis` env var format for StatefulSet DNS
 - `scripts/dev-local.sh`: Shows correct startup order: Redis → Canvas API → WebSocket → Frontend
 - `test-multiuser.js`: Multi-user testing with configurable users/pixels, validates broadcast success rate
+- `docs/USERNAME_FEATURE.md`: Complete documentation of username and user presence feature
+- `frontend/ARCHITECTURE.md`: Frontend modular architecture documentation

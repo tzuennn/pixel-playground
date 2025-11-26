@@ -14,6 +14,7 @@ class PixelPlaygroundApp {
     this.wsService = null;
     this.uiController = null;
     this.isDrawing = false;
+    this.currentUsername = null;
   }
 
   /**
@@ -76,15 +77,20 @@ class PixelPlaygroundApp {
   connectWebSocket() {
     this.wsService = new WebSocketService();
 
+    // Get username from user
+    this.currentUsername = this.uiController.promptUsername();
+    const username = this.currentUsername;
+
     // Handle status changes
     this.wsService.connect((status) => {
       this.uiController.updateStatus(status);
       if (status.connected) {
         this.uiController.clearError();
-      } else {
+      } else if (!status.manual) {
+        // Only show error for unexpected disconnects, not manual username changes
         this.uiController.showError("Connection error. Retrying...");
       }
-    });
+    }, this.currentUsername);
 
     // Handle different message types
     this.wsService.on("connected", (message) => {
@@ -92,12 +98,23 @@ class PixelPlaygroundApp {
     });
 
     this.wsService.on("pixel_updated", (message) => {
-      const { x, y, color } = message;
+      const { x, y, color, username: editorUsername } = message;
       this.canvasManager.updatePixel(x, y, color);
+
+      // Show who's drawing (skip if it's the current user)
+      if (editorUsername && editorUsername !== this.currentUsername) {
+        this.uiController.showDrawingIndicator(editorUsername, x, y, color);
+      }
     });
 
     this.wsService.on("stats", (message) => {
       this.uiController.updateUserCount(message.activeUsers);
+    });
+
+    this.wsService.on("user_list", (message) => {
+      if (message.users) {
+        this.uiController.updateActiveUsers(message.users);
+      }
     });
 
     this.wsService.on("error", (message) => {
@@ -124,6 +141,12 @@ class PixelPlaygroundApp {
 
     // Preset colors
     this.uiController.setupPresetColors();
+
+    // Edit username button
+    const editUsernameBtn = document.getElementById("editUsernameBtn");
+    if (editUsernameBtn) {
+      editUsernameBtn.addEventListener("click", () => this.handleEditUsername());
+    }
 
     // Clear button - expose to global scope for onclick
     window.clearCanvas = () => this.clearCanvas();
@@ -198,6 +221,22 @@ class PixelPlaygroundApp {
         this.canvasManager.updatePixel(x, y, color);
       } else {
         this.uiController.showError("Not connected to server");
+      }
+    }
+  }
+
+  /**
+   * Handle edit username
+   */
+  handleEditUsername() {
+    const newUsername = this.uiController.editUsername();
+    if (newUsername && this.wsService) {
+      // Update username on existing connection (no disconnect needed!)
+      if (this.wsService.updateUsername(newUsername)) {
+        // Update the username reference
+        this.currentUsername = newUsername;
+      } else {
+        this.uiController.showError("Failed to update username. Not connected.");
       }
     }
   }

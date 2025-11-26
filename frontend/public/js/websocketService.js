@@ -10,19 +10,37 @@ export class WebSocketService {
     this.ws = null;
     this.reconnectTimeout = 3000;
     this.messageHandlers = new Map();
+    this.username = null;
+    this.shouldReconnect = true;
+    this.onStatusChange = null;
   }
 
   /**
    * Connect to WebSocket server
+   * @param {Function} onStatusChange - Callback for status changes
+   * @param {string} username - Username for this connection
    */
-  connect(onStatusChange) {
+  connect(onStatusChange, username = null) {
+    this.username = username;
+    this.shouldReconnect = true;
+    this.onStatusChange = onStatusChange;
+
     try {
       this.ws = new WebSocket(CONFIG.WS_URL);
 
       this.ws.onopen = () => {
         console.log("WebSocket connected");
-        if (onStatusChange) {
-          onStatusChange({ connected: true, text: "Connected" });
+
+        // Send username to server
+        if (this.username) {
+          this.send({
+            type: "set_username",
+            username: this.username,
+          });
+        }
+
+        if (this.onStatusChange) {
+          this.onStatusChange({ connected: true, text: "Connected" });
         }
       };
 
@@ -36,13 +54,20 @@ export class WebSocketService {
       };
 
       this.ws.onclose = () => {
-        console.log("WebSocket disconnected");
-        if (onStatusChange) {
-          onStatusChange({ connected: false, text: "Disconnected" });
+        console.log("WebSocket disconnected", "shouldReconnect:", this.shouldReconnect);
+        
+        // Only show disconnection status and attempt reconnect if it was unexpected
+        if (this.shouldReconnect) {
+          if (this.onStatusChange) {
+            this.onStatusChange({ connected: false, text: "Disconnected" });
+          }
+          setTimeout(() => this.connect(this.onStatusChange, this.username), this.reconnectTimeout);
+        } else {
+          // Manual disconnect - just update status without error
+          if (this.onStatusChange) {
+            this.onStatusChange({ connected: false, text: "Disconnected", manual: true });
+          }
         }
-
-        // Attempt to reconnect
-        setTimeout(() => this.connect(onStatusChange), this.reconnectTimeout);
       };
 
       this.ws.onerror = (error) => {
@@ -84,11 +109,34 @@ export class WebSocketService {
           x,
           y,
           color,
+          username: this.username,
         })
       );
       return true;
     }
     return false;
+  }
+
+  /**
+   * Send generic message
+   */
+  send(message) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update username without reconnecting
+   */
+  updateUsername(newUsername) {
+    this.username = newUsername;
+    return this.send({
+      type: "set_username",
+      username: newUsername,
+    });
   }
 
   /**
@@ -102,8 +150,10 @@ export class WebSocketService {
    * Close WebSocket connection
    */
   disconnect() {
+    this.shouldReconnect = false;
     if (this.ws) {
       this.ws.close();
+      this.ws = null;
     }
   }
 }

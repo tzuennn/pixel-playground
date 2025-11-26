@@ -10,47 +10,43 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Track connected clients
-let clients = new Set();
+// Track connected clients with username
+// Map: ws -> { username, clientId }
+let clients = new Map();
 
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     connections: clients.size,
+    users: Array.from(clients.values()).map((c) => c.username || "Anonymous"),
     timestamp: new Date().toISOString(),
   });
 });
 
 // WebSocket connection handler
 wss.on("connection", (ws, req) => {
-  console.log("New client connected. Total clients:", clients.size + 1);
-  clients.add(ws);
+  const clientId = generateClientId();
+  const clientInfo = {
+    clientId,
+    username: null,
+    connectedAt: Date.now(),
+  };
 
-  // Send welcome message with current user count
+  clients.set(ws, clientInfo);
+  console.log("New client connected. Total clients:", clients.size);
+
+  // Send welcome message
   ws.send(
     JSON.stringify({
       type: "connected",
       message: "Connected to Cloud Pixel Playground",
-      clientId: generateClientId(),
+      clientId: clientId,
     })
   );
 
-  // Send initial user count to new client
-  ws.send(
-    JSON.stringify({
-      type: "stats",
-      activeUsers: clients.size,
-      timestamp: Date.now(),
-    })
-  );
-
-  // Broadcast updated user count to all clients
-  broadcastToAll({
-    type: "stats",
-    activeUsers: clients.size,
-    timestamp: Date.now(),
-  });
+  // Send initial stats
+  broadcastStats();
 
   // Handle incoming messages
   ws.on("message", async (message) => {
@@ -58,6 +54,10 @@ wss.on("connection", (ws, req) => {
       const data = JSON.parse(message);
 
       switch (data.type) {
+        case "set_username":
+          handleSetUsername(data, ws);
+          break;
+
         case "pixel_update":
           await handlePixelUpdate(data, ws);
           break;
@@ -82,15 +82,15 @@ wss.on("connection", (ws, req) => {
 
   // Handle client disconnect
   ws.on("close", () => {
+    const info = clients.get(ws);
     clients.delete(ws);
-    console.log("Client disconnected. Total clients:", clients.size);
+    console.log(
+      `Client disconnected: ${info?.username || "Anonymous"}. Total clients: ${clients.size}`
+    );
 
-    // Broadcast updated user count to remaining clients
-    broadcastToAll({
-      type: "stats",
-      activeUsers: clients.size,
-      timestamp: Date.now(),
-    });
+    // Broadcast updated stats and user list
+    broadcastStats();
+    broadcastUserList();
   });
 
   // Handle errors
@@ -100,10 +100,30 @@ wss.on("connection", (ws, req) => {
   });
 });
 
+// Handle set username
+function handleSetUsername(data, ws) {
+  const { username } = data;
+
+  if (username && typeof username === "string") {
+    const clientInfo = clients.get(ws);
+    if (clientInfo) {
+      const sanitizedUsername = username.trim().substring(0, 20);
+      clientInfo.username = sanitizedUsername;
+      console.log(
+        `Client ${clientInfo.clientId} set username: ${sanitizedUsername}`
+      );
+
+      // Broadcast updated user list
+      broadcastStats();
+      broadcastUserList();
+    }
+  }
+}
+
 // Handle pixel update
 async function handlePixelUpdate(data, senderWs) {
   try {
-    const { x, y, color } = data;
+    const { x, y, color, username } = data;
 
     // Validate data
     if (
@@ -142,16 +162,19 @@ async function handlePixelUpdate(data, senderWs) {
 
     const result = await response.json();
 
-    // Broadcast update to all connected clients
+    // Broadcast update to all connected clients with username
     broadcastToAll({
       type: "pixel_updated",
       x,
       y,
       color,
+      username: username || clients.get(senderWs)?.username || "Anonymous",
       timestamp: result.timestamp,
     });
 
-    console.log(`Pixel updated: (${x}, ${y}) -> ${color}`);
+    const displayName =
+      username || clients.get(senderWs)?.username || "Anonymous";
+    console.log(`Pixel updated by ${displayName}: (${x}, ${y}) -> ${color}`);
   } catch (error) {
     console.error("Error handling pixel update:", error);
     senderWs.send(
@@ -168,10 +191,10 @@ function broadcastToAll(message) {
   const messageStr = JSON.stringify(message);
   let sentCount = 0;
 
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
+  clients.forEach((clientInfo, ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
       try {
-        client.send(messageStr);
+        ws.send(messageStr);
         sentCount++;
       } catch (error) {
         console.error("Error sending to client:", error);
@@ -182,6 +205,28 @@ function broadcastToAll(message) {
   console.log(`Broadcast to ${sentCount} clients`);
 }
 
+// Broadcast stats (user count)
+function broadcastStats() {
+  broadcastToAll({
+    type: "stats",
+    activeUsers: clients.size,
+    timestamp: Date.now(),
+  });
+}
+
+// Broadcast active user list
+function broadcastUserList() {
+  const usernames = Array.from(clients.values())
+    .map((info) => info.username || "Anonymous")
+    .filter((name) => name !== "Anonymous"); // Only show named users
+
+  broadcastToAll({
+    type: "user_list",
+    users: usernames,
+    timestamp: Date.now(),
+  });
+}
+
 // Generate unique client ID
 function generateClientId() {
   return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -190,11 +235,8 @@ function generateClientId() {
 // Periodic connection status broadcast
 setInterval(() => {
   if (clients.size > 0) {
-    broadcastToAll({
-      type: "stats",
-      activeUsers: clients.size,
-      timestamp: Date.now(),
-    });
+    broadcastStats();
+    broadcastUserList();
   }
 }, 30000); // Every 30 seconds
 
