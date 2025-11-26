@@ -27,7 +27,7 @@ wss.on("connection", (ws, req) => {
   console.log("New client connected. Total clients:", clients.size + 1);
   clients.add(ws);
 
-  // Send welcome message
+  // Send welcome message with current user count
   ws.send(
     JSON.stringify({
       type: "connected",
@@ -35,6 +35,22 @@ wss.on("connection", (ws, req) => {
       clientId: generateClientId(),
     })
   );
+
+  // Send initial user count to new client
+  ws.send(
+    JSON.stringify({
+      type: "stats",
+      activeUsers: clients.size,
+      timestamp: Date.now(),
+    })
+  );
+
+  // Broadcast updated user count to all clients
+  broadcastToAll({
+    type: "stats",
+    activeUsers: clients.size,
+    timestamp: Date.now(),
+  });
 
   // Handle incoming messages
   ws.on("message", async (message) => {
@@ -68,6 +84,13 @@ wss.on("connection", (ws, req) => {
   ws.on("close", () => {
     clients.delete(ws);
     console.log("Client disconnected. Total clients:", clients.size);
+
+    // Broadcast updated user count to remaining clients
+    broadcastToAll({
+      type: "stats",
+      activeUsers: clients.size,
+      timestamp: Date.now(),
+    });
   });
 
   // Handle errors
