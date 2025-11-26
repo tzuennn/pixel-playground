@@ -103,13 +103,13 @@ export class UIController {
   promptUsername() {
     // Check localStorage first
     let username = localStorage.getItem("pixelPlaygroundUsername");
-    
+
     if (!username) {
       username = window.prompt(
         "Enter your username:",
         `User${Math.floor(Math.random() * 1000)}`
       );
-      
+
       if (username && username.trim()) {
         username = username.trim().substring(0, 20); // Limit length
         localStorage.setItem("pixelPlaygroundUsername", username);
@@ -117,7 +117,7 @@ export class UIController {
         username = `Guest${Math.floor(Math.random() * 10000)}`;
       }
     }
-    
+
     return username;
   }
 
@@ -125,20 +125,18 @@ export class UIController {
    * Edit username (for demo/testing)
    */
   editUsername() {
-    const currentUsername = localStorage.getItem("pixelPlaygroundUsername") || "";
-    const newUsername = window.prompt(
-      "Enter new username:",
-      currentUsername
-    );
-    
+    const currentUsername =
+      localStorage.getItem("pixelPlaygroundUsername") || "";
+    const newUsername = window.prompt("Enter new username:", currentUsername);
+
     if (newUsername && newUsername.trim()) {
       const sanitized = newUsername.trim().substring(0, 20);
       localStorage.setItem("pixelPlaygroundUsername", sanitized);
       return sanitized;
     }
-    
+
     return null;
-  }  /**
+  } /**
    * Update active users list
    */
   updateActiveUsers(users) {
@@ -161,26 +159,27 @@ export class UIController {
    */
   showDrawingIndicator(username, x, y, color) {
     if (!username) return;
-    
+
     const canvas = this.elements.canvas;
     const canvasContainer = document.querySelector(".canvas-container");
     if (!canvas || !canvasContainer) return;
-    
+
     // Calculate accurate position based on canvas rect
     const rect = canvas.getBoundingClientRect();
     const containerRect = canvasContainer.getBoundingClientRect();
     const pixelSize = canvas.width / 50; // 50x50 grid
     const scale = rect.width / canvas.width; // Handle any CSS scaling
-    
+
     // Position relative to canvas container
-    const leftPos = (canvas.offsetLeft + (x * pixelSize * scale) + (pixelSize * scale / 2));
-    const topPos = (canvas.offsetTop + (y * pixelSize * scale));
-    
+    const leftPos =
+      canvas.offsetLeft + x * pixelSize * scale + (pixelSize * scale) / 2;
+    const topPos = canvas.offsetTop + y * pixelSize * scale;
+
     // Clear any existing timeout for this user
     if (this.indicatorTimeouts.has(username)) {
       clearTimeout(this.indicatorTimeouts.get(username));
     }
-    
+
     // Get or create indicator
     let indicator = this.drawingIndicators.get(username);
     if (!indicator) {
@@ -190,21 +189,21 @@ export class UIController {
       canvasContainer.appendChild(indicator);
       this.drawingIndicators.set(username, indicator);
     }
-    
+
     // Update position and color (smooth updates during drag)
     indicator.style.left = `${leftPos}px`;
     indicator.style.top = `${topPos}px`;
     indicator.style.borderColor = color;
-    indicator.style.opacity = '1';
-    
+    indicator.style.opacity = "1";
+
     // Auto-hide after 1.5 seconds of inactivity
     const timeout = setTimeout(() => {
-      indicator.style.opacity = '0';
+      indicator.style.opacity = "0";
       setTimeout(() => this.hideDrawingIndicator(username), 300);
     }, 1500);
-    
+
     this.indicatorTimeouts.set(username, timeout);
-  }  /**
+  } /**
    * Hide drawing indicator for a user
    */
   hideDrawingIndicator(username) {
@@ -213,7 +212,7 @@ export class UIController {
       clearTimeout(this.indicatorTimeouts.get(username));
       this.indicatorTimeouts.delete(username);
     }
-    
+
     // Remove indicator
     const indicator = this.drawingIndicators.get(username);
     if (indicator && indicator.parentNode) {

@@ -145,7 +145,9 @@ class PixelPlaygroundApp {
     // Edit username button
     const editUsernameBtn = document.getElementById("editUsernameBtn");
     if (editUsernameBtn) {
-      editUsernameBtn.addEventListener("click", () => this.handleEditUsername());
+      editUsernameBtn.addEventListener("click", () =>
+        this.handleEditUsername()
+      );
     }
 
     // Clear button - expose to global scope for onclick
@@ -236,7 +238,9 @@ class PixelPlaygroundApp {
         // Update the username reference
         this.currentUsername = newUsername;
       } else {
-        this.uiController.showError("Failed to update username. Not connected.");
+        this.uiController.showError(
+          "Failed to update username. Not connected."
+        );
       }
     }
   }

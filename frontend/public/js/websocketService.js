@@ -54,18 +54,29 @@ export class WebSocketService {
       };
 
       this.ws.onclose = () => {
-        console.log("WebSocket disconnected", "shouldReconnect:", this.shouldReconnect);
-        
+        console.log(
+          "WebSocket disconnected",
+          "shouldReconnect:",
+          this.shouldReconnect
+        );
+
         // Only show disconnection status and attempt reconnect if it was unexpected
         if (this.shouldReconnect) {
           if (this.onStatusChange) {
             this.onStatusChange({ connected: false, text: "Disconnected" });
           }
-          setTimeout(() => this.connect(this.onStatusChange, this.username), this.reconnectTimeout);
+          setTimeout(
+            () => this.connect(this.onStatusChange, this.username),
+            this.reconnectTimeout
+          );
         } else {
           // Manual disconnect - just update status without error
           if (this.onStatusChange) {
-            this.onStatusChange({ connected: false, text: "Disconnected", manual: true });
+            this.onStatusChange({
+              connected: false,
+              text: "Disconnected",
+              manual: true,
+            });
           }
         }
       };

@@ -310,7 +310,10 @@ body {
   border: 2px solid;
   transform: translate(-50%, -100%);
   margin-top: -8px;
-  transition: left 0.1s ease-out, top 0.1s ease-out, opacity 0.3s ease-out;
+  transition:
+    left 0.1s ease-out,
+    top 0.1s ease-out,
+    opacity 0.3s ease-out;
   opacity: 1;
 }
 
