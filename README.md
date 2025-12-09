@@ -149,16 +149,6 @@ A **real-time collaborative** 50×50 pixel canvas with username tracking, deploy
 4. **Watch the Active Artists panel** update in real-time
 5. **See drawing indicators** showing other users' cursor positions
 
-Or use the automated test:
-
-```bash
-# Test with 5 users drawing 3 pixels each
-node test-multiuser.js
-
-# Configure test parameters
-NUM_USERS=10 PIXELS_PER_USER=5 WS_URL=ws://localhost/ws node test-multiuser.js
-```
-
 ## 📁 Project Structure
 
 ```
@@ -200,7 +190,9 @@ pixel-playground/
 │   ├── stop-local.sh        # Stop local services
 │   └── cleanup.sh           # Delete Kubernetes resources
 │
-├── test-multiuser.js        # Multi-user testing script
+├── tests/
+│   └── test-load-balancing.js  # Load balancing verification
+│
 └── README.md
 ```
 

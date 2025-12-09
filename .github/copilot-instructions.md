@@ -48,20 +48,6 @@ All services use `process.env.PORT || [default]`. Frontend injects URLs at runti
 - K8s NodePort: `http://localhost:30000`
 - K8s Port-forward: `kubectl port-forward svc/frontend 8080:3000` → `http://localhost:8080`
 
-### Testing Multi-User
-
-```bash
-node test-multiuser.js        # Simulates 5 users drawing 3 pixels each (configurable)
-# Configure with: NUM_USERS=10 PIXELS_PER_USER=5 WS_URL=ws://localhost:3002 node test-multiuser.js
-# OR open http://localhost:3000 in multiple browsers
-```
-
-Test script validates:
-
-- All users connect successfully
-- Broadcasts reach all clients (expects 90%+ success rate)
-- Real-time synchronization works correctly
-
 ### Debugging Failed Pods
 
 ```bash

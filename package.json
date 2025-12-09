@@ -2,17 +2,23 @@
   "name": "pixel-playground",
   "version": "1.0.0",
   "description": "A real-time collaborative 50×50 pixel canvas deployed on Kubernetes.",
-  "main": "test-multiuser.js",
+  "main": "tests/test-load-balancing.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tests/test-load-balancing.js",
+    "test:loadbalancing": "node tests/test-load-balancing.js",
+    "test:stress": "NUM_CLIENTS=100 PIXELS_PER_CLIENT=20 node tests/test-load-balancing.js",
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\"",
     "format:canvas-api": "prettier --write \"canvas-api/**/*.js\"",
     "format:websocket": "prettier --write \"websocket-gateway/**/*.js\"",
     "format:frontend": "prettier --write \"frontend/**/*.js\""
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "ws": "^8.14.2"
   },
   "keywords": [],
   "author": "",
