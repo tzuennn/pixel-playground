@@ -9,7 +9,9 @@
   "scripts": {
     "test": "node tests/test-load-balancing.js",
     "test:loadbalancing": "node tests/test-load-balancing.js",
-    "test:stress": "NUM_CLIENTS=100 PIXELS_PER_CLIENT=20 node tests/test-load-balancing.js",
+    "test:stress": "MAX_CLIENTS=100 STEADY_STATE_CLIENTS=50 TEST_DURATION=60 node tests/test-stress.js",
+    "test:chaos": "NUM_CLIENTS=20 TEST_DURATION=60 CHAOS_INTERVAL=15 node tests/test-chaos.js",
+    "test:concurrent": "NUM_CLIENTS=20 TARGET_PIXELS=10 node tests/test-concurrent-pixel.js",
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\"",
     "format:canvas-api": "prettier --write \"canvas-api/**/*.js\"",

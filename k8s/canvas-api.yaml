@@ -22,7 +22,7 @@ metadata:
   labels:
     app: canvas-api
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: canvas-api
