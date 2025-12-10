@@ -156,27 +156,14 @@ async function getPodDistribution() {
       { encoding: 'utf-8' }
     );
     
-    const pods = podsOutput.trim().split(/\s+/);
+    const pods = podsOutput.trim().split(/\s+/).filter(p => p);
     console.log(`Found ${pods.length} WebSocket Gateway pods:`);
-    
-    for (const pod of pods) {
-      // Get connection count from pod logs
-      try {
-        const logs = execSync(
-          `kubectl logs ${pod} --tail=100 | grep -c "New client connected" || echo 0`,
-          { encoding: 'utf-8' }
-        );
-        
-        const connections = parseInt(logs.trim()) || 0;
-        stats.connectionsPerPod.set(pod, connections);
-        console.log(`  • ${pod}: ${connections} connections (from logs)`);
-      } catch (error) {
-        console.log(`  • ${pod}: Unable to fetch stats`);
-      }
-    }
     
     // Get current active connections from health endpoint
     console.log('\n📡 Current active connections per pod:\n');
+    
+    // Clear previous stats
+    stats.connectionsPerPod.clear();
     
     for (const pod of pods) {
       try {
@@ -186,10 +173,16 @@ async function getPodDistribution() {
         );
         
         const health = JSON.parse(healthOutput);
-        console.log(`  • ${pod}: ${health.connections} active connections`);
+        const userCount = health.users ? health.users.length : 0;
+        
+        // Store the actual user count from the health endpoint
+        stats.connectionsPerPod.set(pod, userCount);
+        
+        console.log(`  • ${pod}: ${userCount} active connections`);
         console.log(`    Users: ${health.users.join(', ') || 'none'}`);
       } catch (error) {
         console.log(`  • ${pod}: Health check failed`);
+        stats.connectionsPerPod.set(pod, 0);
       }
     }
     
