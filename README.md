@@ -166,6 +166,7 @@ A **real-time collaborative** 50×50 pixel canvas with username tracking, deploy
 Comprehensive testing infrastructure for production validation:
 
 #### 1. Load Balancing Test
+
 ```bash
 npm run test:loadbalancing
 # Tests: Connection distribution across WebSocket Gateway pods
@@ -173,11 +174,13 @@ npm run test:loadbalancing
 ```
 
 **Expected Results:**
+
 - Even distribution across all 4 WebSocket Gateway replicas
 - Each pod handles 22-27% of connections
 - 100% broadcast success rate
 
 #### 2. Stress Test
+
 ```bash
 npm run test:stress
 # Tests: 100 concurrent clients, connection churn (5/sec)
@@ -185,12 +188,14 @@ npm run test:stress
 ```
 
 **Expected Results:**
+
 - **Latency**: p50 < 60ms, p95 < 200ms, p99 < 300ms
 - **Throughput**: > 50 pixels/second
 - **Connection Success**: > 95%
 - **Broadcast Effectiveness**: 30-40x multiplier
 
 #### 3. Chaos Test
+
 ```bash
 npm run test:chaos
 # Tests: Pod failures every 15s with 20 connected clients
@@ -198,11 +203,13 @@ npm run test:chaos
 ```
 
 **Expected Results:**
+
 - **Reconnection Success**: 100% of affected clients
 - **Recovery Time**: < 200ms average
 - **Delivery Rate**: > 95% (some in-flight messages lost)
 
 #### 4. Concurrent Pixel Test
+
 ```bash
 npm run test:concurrent
 # Tests: Multiple clients editing same pixel simultaneously
@@ -210,20 +217,21 @@ npm run test:concurrent
 ```
 
 **Expected Results:**
+
 - **Consistency Rate**: 100%
 - **Race Conditions Handled**: All detected scenarios
 - **Final State**: Always matches last update
 
 ### Performance Metrics (Production)
 
-| Metric | Target | Actual |
-|--------|--------|--------|
-| p50 Latency | < 60ms | 58ms |
-| p95 Latency | < 200ms | 195ms |
-| p99 Latency | < 300ms | ~250ms |
-| Reconnection Rate | > 95% | 100% |
-| Broadcast Success | > 95% | 100% |
-| Recovery Time | < 500ms | < 200ms |
+| Metric            | Target  | Actual  |
+| ----------------- | ------- | ------- |
+| p50 Latency       | < 60ms  | 58ms    |
+| p95 Latency       | < 200ms | 195ms   |
+| p99 Latency       | < 300ms | ~250ms  |
+| Reconnection Rate | > 95%   | 100%    |
+| Broadcast Success | > 95%   | 100%    |
+| Recovery Time     | < 500ms | < 200ms |
 
 ### Custom Test Parameters
 
