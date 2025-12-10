@@ -16,9 +16,12 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Track connected clients with username
-// Map: ws -> { username, clientId }
+// Track connected clients with username and heartbeat
+// Map: ws -> { username, clientId, isAlive, connectedAt }
 let clients = new Map();
+
+// Heartbeat interval (30 seconds)
+const HEARTBEAT_INTERVAL = 30000;
 
 // Redis clients for pub/sub
 let redisPublisher;
@@ -107,10 +110,19 @@ wss.on("connection", (ws, req) => {
     clientId,
     username: null,
     connectedAt: Date.now(),
+    isAlive: true,
   };
 
   clients.set(ws, clientInfo);
   console.log("New client connected. Total clients:", clients.size);
+
+  // Handle pong responses to keep connection alive
+  ws.on("pong", () => {
+    const info = clients.get(ws);
+    if (info) {
+      info.isAlive = true;
+    }
+  });
 
   // Send welcome message
   ws.send(
@@ -200,61 +212,65 @@ function handleSetUsername(data, ws) {
   }
 }
 
-// Handle pixel update
+// Validate pixel data locally (faster than HTTP call)
+function isValidPixel(x, y, color) {
+  return (
+    typeof x === "number" &&
+    typeof y === "number" &&
+    x >= 0 &&
+    x < 50 &&
+    y >= 0 &&
+    y < 50 &&
+    typeof color === "string" &&
+    /^#[0-9A-F]{6}$/i.test(color)
+  );
+}
+
+// Handle pixel update with optimistic broadcasting
 async function handlePixelUpdate(data, senderWs) {
+  const { x, y, color, username } = data;
+
+  // Fast local validation (no HTTP call needed)
+  if (!isValidPixel(x, y, color)) {
+    senderWs.send(
+      JSON.stringify({
+        type: "error",
+        message: "Invalid pixel data",
+      })
+    );
+    return;
+  }
+
   try {
-    const { x, y, color, username } = data;
+    const displayName =
+      username || clients.get(senderWs)?.username || "Anonymous";
+    const timestamp = Date.now();
 
-    // Validate data
-    if (
-      typeof x !== "number" ||
-      typeof y !== "number" ||
-      typeof color !== "string"
-    ) {
-      senderWs.send(
-        JSON.stringify({
-          type: "error",
-          message: "Invalid pixel data",
-        })
-      );
-      return;
-    }
-
-    // Update pixel in Canvas API
-    const response = await fetch(`${CANVAS_API_URL}/api/pixel`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ x, y, color }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      senderWs.send(
-        JSON.stringify({
-          type: "error",
-          message: error.error || "Failed to update pixel",
-        })
-      );
-      return;
-    }
-
-    const result = await response.json();
-
-    // Broadcast update to all connected clients with username
+    // OPTIMIZATION 1: Broadcast immediately (optimistic update)
+    // Don't wait for Canvas API response - broadcast first for low latency
     broadcastToAll({
       type: "pixel_updated",
       x,
       y,
       color,
-      username: username || clients.get(senderWs)?.username || "Anonymous",
-      timestamp: result.timestamp,
+      username: displayName,
+      timestamp: timestamp,
     });
 
-    const displayName =
-      username || clients.get(senderWs)?.username || "Anonymous";
     console.log(`Pixel updated by ${displayName}: (${x}, ${y}) -> ${color}`);
+
+    // OPTIMIZATION 2: Persist to Canvas API asynchronously (fire-and-forget)
+    // This happens in parallel with broadcast, doesn't block the response
+    fetch(`${CANVAS_API_URL}/api/pixel`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ x, y, color }),
+    }).catch((error) => {
+      console.error("Error persisting pixel (non-blocking):", error);
+      // In production, you'd queue for retry or log to monitoring
+    });
   } catch (error) {
     console.error("Error handling pixel update:", error);
     senderWs.send(
@@ -405,6 +421,25 @@ function generateClientId() {
   return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Heartbeat mechanism to detect dead connections
+function startHeartbeat() {
+  setInterval(() => {
+    clients.forEach((clientInfo, ws) => {
+      if (clientInfo.isAlive === false) {
+        // Client didn't respond to last ping, terminate connection
+        console.log(
+          `⚠️  Client ${clientInfo.clientId} heartbeat timeout, terminating connection`
+        );
+        return ws.terminate();
+      }
+
+      // Mark as not alive and send ping
+      clientInfo.isAlive = false;
+      ws.ping();
+    });
+  }, HEARTBEAT_INTERVAL);
+}
+
 // Periodic connection status broadcast and cleanup of stale pod data
 setInterval(() => {
   if (clients.size > 0 || redisReady) {
@@ -418,6 +453,12 @@ setInterval(() => {
 async function startServer() {
   // Initialize Redis first
   await initRedis();
+
+  // Start heartbeat monitoring
+  startHeartbeat();
+  console.log(
+    `✓ Heartbeat monitoring started (${HEARTBEAT_INTERVAL}ms interval)`
+  );
 
   server.listen(PORT, () => {
     console.log(`WebSocket Gateway running on port ${PORT}`);
