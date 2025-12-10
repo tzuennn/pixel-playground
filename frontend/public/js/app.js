@@ -149,9 +149,6 @@ class PixelPlaygroundApp {
         this.handleEditUsername()
       );
     }
-
-    // Clear button - expose to global scope for onclick
-    window.clearCanvas = () => this.clearCanvas();
   }
 
   /**
@@ -242,26 +239,6 @@ class PixelPlaygroundApp {
           "Failed to update username. Not connected."
         );
       }
-    }
-  }
-
-  /**
-   * Clear canvas
-   */
-  async clearCanvas() {
-    if (
-      !this.uiController.confirm(
-        "Are you sure you want to clear the entire canvas?"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await ApiService.resetCanvas();
-      await this.loadCanvas();
-    } catch (error) {
-      this.uiController.showError(error.message);
     }
   }
 }
