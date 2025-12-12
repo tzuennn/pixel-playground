@@ -2,6 +2,17 @@
 
 A **real-time collaborative** 50×50 pixel canvas with username tracking, deployed on Kubernetes with scalable WebSocket architecture using Redis Pub/Sub.
 
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [Architecture](#architecture)
+- [🚀 Quick Start](#-quick-start)
+- [🧪 Testing](#-testing) ← **Developers: Start here for testing instructions**
+- [📁 Project Structure](#-project-structure)
+- [🏗️ Architecture Details](#️-architecture-details)
+- [🛠️ Development](#️-development)
+- [📚 Documentation](#-documentation)
+
 ## ✨ Features
 
 - 🎨 **Real-time Collaboration**: Draw pixels that instantly appear for all connected users
@@ -167,6 +178,22 @@ A **real-time collaborative** 50×50 pixel canvas with username tracking, deploy
 
 ## 🧪 Testing
 
+> **For Developers**: This project includes a comprehensive automated test suite. Make sure your Kubernetes cluster is running with all services deployed before testing.
+
+### Prerequisites for Testing
+
+```bash
+# 1. Ensure cluster is running
+kubectl get pods
+# All pods should show "Running" status
+
+# 2. Install test dependencies (if not already installed)
+npm install
+
+# 3. Verify access
+curl http://localhost/health  # Should return OK
+```
+
 ### Quick Manual Test
 
 1. **Open multiple browser tabs** at `http://localhost`
@@ -177,7 +204,7 @@ A **real-time collaborative** 50×50 pixel canvas with username tracking, deploy
 
 ### Automated Test Suite
 
-Comprehensive testing infrastructure for production validation:
+Comprehensive testing infrastructure for production validation. **All tests require kubectl access** to your cluster.
 
 #### 1. Load Balancing Test
 
@@ -247,6 +274,16 @@ npm run test:concurrent
 | Broadcast Success | > 95%   | 100%    |
 | Recovery Time     | < 500ms | < 200ms |
 
+### Run All Tests
+
+```bash
+# Quick test all components (2-3 minutes)
+npm run test:loadbalancing && \
+npm run test:concurrent && \
+npm run test:stress && \
+npm run test:chaos
+```
+
 ### Custom Test Parameters
 
 ```bash
@@ -262,6 +299,35 @@ NUM_CLIENTS=50 TARGET_PIXELS=20 npm run test:concurrent
 # Verify load distribution with many clients
 NUM_CLIENTS=40 PIXELS_PER_CLIENT=5 npm run test:loadbalancing
 ```
+
+### Troubleshooting Tests
+
+**Test fails with "Connection refused":**
+```bash
+# Check if Ingress is accessible
+kubectl get ingress
+kubectl port-forward svc/frontend 8080:3000
+# Use WS_URL=ws://localhost:8080 API_URL=http://localhost:8080
+```
+
+**Test shows "kubectl not found":**
+```bash
+# Some tests require kubectl for pod inspection
+# Install kubectl or skip pod distribution checks
+# Tests will still validate client-side behavior
+```
+
+**Chaos test fails to kill pods:**
+```bash
+# Ensure you have permissions
+kubectl auth can-i delete pods
+# If using namespace: kubectl config set-context --current --namespace=default
+```
+
+**Consistency rate varies (60-100%):**
+- ✅ **This is expected!** Fire-and-forget architecture prioritizes speed
+- The test documents actual race conditions (not a bug)
+- See test comments for explanation of timing-based consistency
 
 ## 📁 Project Structure
 
