@@ -303,6 +303,7 @@ NUM_CLIENTS=40 PIXELS_PER_CLIENT=5 npm run test:loadbalancing
 ### Troubleshooting Tests
 
 **Test fails with "Connection refused":**
+
 ```bash
 # Check if Ingress is accessible
 kubectl get ingress
@@ -311,6 +312,7 @@ kubectl port-forward svc/frontend 8080:3000
 ```
 
 **Test shows "kubectl not found":**
+
 ```bash
 # Some tests require kubectl for pod inspection
 # Install kubectl or skip pod distribution checks
@@ -318,6 +320,7 @@ kubectl port-forward svc/frontend 8080:3000
 ```
 
 **Chaos test fails to kill pods:**
+
 ```bash
 # Ensure you have permissions
 kubectl auth can-i delete pods
@@ -325,6 +328,7 @@ kubectl auth can-i delete pods
 ```
 
 **Consistency rate varies (60-100%):**
+
 - ✅ **This is expected!** Fire-and-forget architecture prioritizes speed
 - The test documents actual race conditions (not a bug)
 - See test comments for explanation of timing-based consistency
