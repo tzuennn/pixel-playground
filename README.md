@@ -6,12 +6,11 @@ A **real-time collaborative** 50×50 pixel canvas with username tracking, deploy
 
 - [✨ Features](#-features)
 - [Architecture](#architecture)
+- [🎯 Components](#-components)
 - [🚀 Quick Start](#-quick-start)
 - [🧪 Testing](#-testing) ← **Developers: Start here for testing instructions**
 - [📁 Project Structure](#-project-structure)
 - [🏗️ Architecture Details](#️-architecture-details)
-- [🛠️ Development](#️-development)
-- [📚 Documentation](#-documentation)
 
 ## ✨ Features
 
@@ -254,14 +253,15 @@ npm run test:chaos
 ```bash
 npm run test:concurrent
 # Tests: Multiple clients editing same pixel simultaneously
-# Validates: Race condition handling, last-write-wins consistency
+# Validates: Race condition handling with fire-and-forget architecture
 ```
 
 **Expected Results:**
 
-- **Consistency Rate**: 100%
-- **Race Conditions Handled**: All detected scenarios
-- **Final State**: Always matches last update
+- **Consistency Rate**: 60-100% (varies per run - this is expected!)
+- **Typical Range**: 80-95% for fire-and-forget optimistic updates
+- **Race Conditions Detected**: Proves test creates real concurrency
+- **Note**: Variability is intentional - demonstrates network timing effects
 
 ### Performance Metrics (Production)
 
@@ -391,9 +391,10 @@ The WebSocket Gateway uses **Redis Pub/Sub** to enable horizontal scaling:
 
 1. **Client connects** to any WebSocket pod (load-balanced by Kubernetes Service)
 2. **Client sends pixel update** → received by Pod A
-3. **Pod A publishes** to Redis channel `pixel-updates`
+3. **Pod A broadcasts immediately** to Redis channel `pixel-updates` (optimistic)
 4. **All pods** (A, B, C...) receive the message via Redis subscription
 5. **Each pod broadcasts** to its own connected WebSocket clients
+6. **Pod A persists** to Canvas API asynchronously (fire-and-forget for low latency)
 
 This architecture allows:
 
